@@ -1,9 +1,7 @@
 package com.devDaph.todo.list.model;
 
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
 @Entity
@@ -13,6 +11,19 @@ public class TodoItem {
     @NotBlank(message = "Title cannot be blank")
     private String title;
     private boolean done;
+    private String description;
+
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    private Category category;
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
+    }
 
     public TodoItem() {
     }
@@ -21,6 +32,7 @@ public class TodoItem {
         this.id = id;
         this.title = title;
         this.done = done;
+        this.description = "";
     }
 
     @Id
@@ -47,5 +59,13 @@ public class TodoItem {
 
     public void setDone(boolean done) {
         this.done = done;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }
