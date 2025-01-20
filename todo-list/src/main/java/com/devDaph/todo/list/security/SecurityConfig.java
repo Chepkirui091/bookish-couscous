@@ -14,11 +14,13 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    // Password Encoder bean for encoding passwords
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // Authentication Manager bean to authenticate users
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
@@ -26,13 +28,27 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-        return httpSecurity
+        httpSecurity
+                // Disable CSRF for stateless authentication
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(registry -> {
+                    // Permit access to registration, login, Swagger UI, and error pages
                     registry
-                            .requestMatchers("/api/auth/register", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll(); // Allow public access
-                    registry.anyRequest().authenticated(); // Secure all other requests
-                })
-                .build();
+                            .requestMatchers(
+                                    "/api/auth/register",
+                                    "/api/auth/login",
+                                    "/swagger-ui/**",
+                                    "/v3/api-docs/**",
+                                    "/swagger-ui.html",
+                                    "/error"
+                            )
+                            .permitAll();
+
+                    // Require authentication for all other endpoints
+                    registry.anyRequest().authenticated();
+                });
+
+        return httpSecurity.build();
     }
+
 }
