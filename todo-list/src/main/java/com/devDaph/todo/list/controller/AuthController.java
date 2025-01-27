@@ -1,56 +1,79 @@
 package com.devDaph.todo.list.controller;
 
+
 import com.devDaph.todo.list.Dto.LoginDto;
 import com.devDaph.todo.list.Dto.UserRegistrationDto;
-import com.devDaph.todo.list.security.JwtTokenProvider;
-import com.devDaph.todo.list.service.UserService;
-import jakarta.validation.Valid;
+import com.devDaph.todo.list.model.Role;
+import com.devDaph.todo.list.model.User;
+import com.devDaph.todo.list.repo.RoleRepo;
+import com.devDaph.todo.list.repo.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collections;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final UserService userService;
-    private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider jwtTokenProvider;
+    @Autowired
+    private AuthenticationManager authenticationManager;
 
-    public AuthController(UserService userService, AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
-        this.userService = userService;
-        this.authenticationManager = authenticationManager;
-        this.jwtTokenProvider = jwtTokenProvider;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private RoleRepo roleRepo;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @PostMapping("/signin")
+    public ResponseEntity<String> authenticateUser (@RequestBody LoginDto loginDto) {
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                loginDto.getUsernameOrEmail(), loginDto.getPassword()));
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return new ResponseEntity<>("User Signed-in successfully!.", HttpStatus.OK);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<String> registerUser(@Valid @RequestBody UserRegistrationDto userDto) {
-        if (userService.existsByEmail(userDto.getEmail())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is already in use");
+    @PostMapping("/signup")
+    public ResponseEntity<?>registerUser(@RequestBody UserRegistrationDto userRegistrationDto) {
+
+        // add check for username exists in a DB
+        if(userRepository.existsByUsername(userRegistrationDto.getUserName())){
+            return new ResponseEntity<>("Username is already exists!", HttpStatus.BAD_REQUEST);
         }
 
-        userService.register(userDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Registration successful. Please verify your email.");
+        // add check for email exists in DB
+        if(userRepository.existsByEmail(userRegistrationDto.getEmail())){
+            return new ResponseEntity<>("Email is already exists!", HttpStatus.BAD_REQUEST);
+        }
+
+        // create user object
+        User user = new User();
+        user.setName(userRegistrationDto.getUserName());
+        user.setEmail(userRegistrationDto.getEmail());
+        user.setUsername(userRegistrationDto.getUserName());
+        user.setPassword(passwordEncoder.encode(userRegistrationDto.getPassword()));
+
+        Role roles = roleRepo.findByName("ROLE_ADMIN").get();
+        user.setRoles(Collections.singleton(roles));
+
+        userRepository.save(user);
+
+        return new ResponseEntity<>("User registered successfully!", HttpStatus.OK);
+
     }
 
-    @PostMapping("/login")
-    public String login(@RequestBody LoginDto loginDto) {
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword()));
-            String token = jwtTokenProvider.generateToken(loginDto.getEmail());
-            return "Bearer " + token;
-        } catch (AuthenticationException ex) {
-            return "Invalid email or password";
-        }
-    }
 }

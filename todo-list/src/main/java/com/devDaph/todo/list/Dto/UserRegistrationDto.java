@@ -11,11 +11,8 @@ public class UserRegistrationDto {
     @Size(min = 3, message = "username must have at least 3 characters")
     private String userName;
 
-    @NotBlank(message = "Firstname is required")
-    private String firstName;
-
-    @NotBlank(message = "Lastname is required")
-    private String lastName;
+    @NotBlank(message = "Name is required")
+    private String name;
 
     @NotBlank(message = "Email is required")
     @Email(message = "invalid email format")
@@ -24,10 +21,5 @@ public class UserRegistrationDto {
     @NotBlank(message = "Password is required")
     @Size(min=6, message = "Password must have at least 6 characters")
     private String password;
-
-    @NotBlank(message = "Confirm Password required")
-    private String confirmPassword;
-
-    private Boolean agreeToTerms;
 
 }
